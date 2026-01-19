@@ -1,0 +1,38 @@
+.env
+
+# Node
+node_modules
+.next
+dist
+*.log
+
+# Go
+backend/tmp
+backend/bin
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+backend/.air.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Mobile
+apps/mobile/.expo
+apps/mobile/.expo-shared
+apps/mobile/dist
+apps/mobile/build
+
+# Desktop
+apps/desktop/src-tauri/target
+apps/desktop/dist

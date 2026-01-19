@@ -1,0 +1,17 @@
+{
+  "name": "repuestos-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:admin": "npm --workspace apps/admin-web run dev",
+    "dev:ecommerce": "npm --workspace apps/ecommerce-web run dev",
+    "dev:mobile": "npm --workspace apps/mobile run start",
+    "dev:desktop": "npm --workspace apps/desktop run tauri dev",
+    "dev:packages": "npm --workspace packages/api-client run build",
+    "build:packages": "npm --workspace packages/types run build && npm --workspace packages/api-client run build",
+    "lint": "npm --workspace apps/admin-web run lint"
+  }
+}
