@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
+import { AppThemeProvider } from './theme-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Admin - Repuestos Platform',
-  description: 'Panel de administración interno',
+  title: 'Fulltronik - Login',
+  description: 'Sistema de gestión de repuestos',
 }
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <AppThemeProvider>{children}</AppThemeProvider>
+      </body>
     </html>
   )
 }

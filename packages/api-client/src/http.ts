@@ -33,7 +33,7 @@ async function request<T>(
     );
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
 export function get<T>(endpoint: string, options?: RequestInit): Promise<T> {
