@@ -21,6 +21,10 @@ import {
   AccordionSummary,
   AccordionDetails,
   IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -67,6 +71,33 @@ interface Repuesto {
   }[]
 }
 
+// Datos de marcas y modelos disponibles
+const marcasModelosDisponibles = [
+  { marca: 'Toyota', modelo: 'Corolla' },
+  { marca: 'Toyota', modelo: 'Camry' },
+  { marca: 'Toyota', modelo: 'RAV4' },
+  { marca: 'Toyota', modelo: 'Hilux' },
+  { marca: 'Honda', modelo: 'Civic' },
+  { marca: 'Honda', modelo: 'Accord' },
+  { marca: 'Honda', modelo: 'CR-V' },
+  { marca: 'Ford', modelo: 'Focus' },
+  { marca: 'Ford', modelo: 'Fiesta' },
+  { marca: 'Ford', modelo: 'Ranger' },
+  { marca: 'Chevrolet', modelo: 'Cruze' },
+  { marca: 'Chevrolet', modelo: 'Onix' },
+  { marca: 'Volkswagen', modelo: 'Gol' },
+  { marca: 'Volkswagen', modelo: 'Polo' },
+  { marca: 'Fiat', modelo: 'Palio' },
+  { marca: 'Fiat', modelo: 'Uno' },
+]
+
+// Datos de proveedores y sus códigos
+const proveedoresYCodigos: { [key: string]: string[] } = {
+  'Distribuidora Central': ['DC-789', 'DC-111', 'DC-999', 'DC-777', 'DC-333', 'DC-444', 'DC-666'],
+  'Repuestos SA': ['RS-456', 'RS-123', 'RS-222', 'RS-555'],
+  'AutoPartes': ['AP-888'],
+}
+
 export default function BuscarPage() {
   const [filtros, setFiltros] = useState({
     nombre: '',
@@ -78,6 +109,24 @@ export default function BuscarPage() {
   })
   const [repuestos, setRepuestos] = useState<Repuesto[]>([])
   const [repuestosFiltrados, setRepuestosFiltrados] = useState<Repuesto[]>([])
+
+  // Obtener marcas únicas
+  const marcasUnicas = Array.from(new Set(marcasModelosDisponibles.map((m) => m.marca)))
+
+  // Obtener modelos filtrados por marca seleccionada
+  const modelosFiltrados = filtros.marca
+    ? marcasModelosDisponibles
+        .filter((m) => m.marca === filtros.marca)
+        .map((m) => m.modelo)
+    : []
+
+  // Obtener proveedores únicos
+  const proveedoresUnicos = Object.keys(proveedoresYCodigos)
+
+  // Obtener códigos de proveedor filtrados por proveedor seleccionado
+  const codigosProveedorFiltrados = filtros.proveedor
+    ? proveedoresYCodigos[filtros.proveedor] || []
+    : []
 
   // Cargar datos de ejemplo o desde localStorage
   useEffect(() => {
@@ -279,7 +328,18 @@ export default function BuscarPage() {
   }, [filtros, repuestos])
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltros((prev) => ({ ...prev, [campo]: valor }))
+    setFiltros((prev) => {
+      const nuevosFiltros = { ...prev, [campo]: valor }
+      // Si cambia la marca, limpiar el modelo
+      if (campo === 'marca') {
+        nuevosFiltros.modelo = ''
+      }
+      // Si cambia el proveedor, limpiar el código de proveedor
+      if (campo === 'proveedor') {
+        nuevosFiltros.codigoProveedor = ''
+      }
+      return nuevosFiltros
+    })
   }
 
   const handleLimpiarFiltros = () => {
@@ -318,24 +378,42 @@ export default function BuscarPage() {
               onChange={(e) => handleFiltroChange('nombre', e.target.value)}
               placeholder="Ej: Filtro de aire"
             />
-            <TextField
-              fullWidth
-              label="Marca"
-              variant="outlined"
-              value={filtros.marca}
-              onChange={(e) => handleFiltroChange('marca', e.target.value)}
-              placeholder="Ej: Toyota"
-            />
+            <FormControl fullWidth>
+              <InputLabel>Marca</InputLabel>
+              <Select
+                value={filtros.marca}
+                label="Marca"
+                onChange={(e) => handleFiltroChange('marca', e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Todas</em>
+                </MenuItem>
+                {marcasUnicas.map((marca) => (
+                  <MenuItem key={marca} value={marca}>
+                    {marca}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-            <TextField
-              fullWidth
-              label="Modelo"
-              variant="outlined"
-              value={filtros.modelo}
-              onChange={(e) => handleFiltroChange('modelo', e.target.value)}
-              placeholder="Ej: Corolla"
-            />
+            <FormControl fullWidth disabled={!filtros.marca}>
+              <InputLabel>Modelo</InputLabel>
+              <Select
+                value={filtros.modelo}
+                label="Modelo"
+                onChange={(e) => handleFiltroChange('modelo', e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Todos</em>
+                </MenuItem>
+                {modelosFiltrados.map((modelo) => (
+                  <MenuItem key={modelo} value={modelo}>
+                    {modelo}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               fullWidth
               label="Código Fabricante"
@@ -346,22 +424,40 @@ export default function BuscarPage() {
             />
           </Box>
           <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-            <TextField
-              fullWidth
-              label="Código Proveedor"
-              variant="outlined"
-              value={filtros.codigoProveedor}
-              onChange={(e) => handleFiltroChange('codigoProveedor', e.target.value)}
-              placeholder="Ej: DC-789"
-            />
-            <TextField
-              fullWidth
-              label="Proveedor"
-              variant="outlined"
-              value={filtros.proveedor}
-              onChange={(e) => handleFiltroChange('proveedor', e.target.value)}
-              placeholder="Ej: Distribuidora Central"
-            />
+            <FormControl fullWidth>
+              <InputLabel>Proveedor</InputLabel>
+              <Select
+                value={filtros.proveedor}
+                label="Proveedor"
+                onChange={(e) => handleFiltroChange('proveedor', e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Todos</em>
+                </MenuItem>
+                {proveedoresUnicos.map((proveedor) => (
+                  <MenuItem key={proveedor} value={proveedor}>
+                    {proveedor}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth disabled={!filtros.proveedor}>
+              <InputLabel>Código Proveedor</InputLabel>
+              <Select
+                value={filtros.codigoProveedor}
+                label="Código Proveedor"
+                onChange={(e) => handleFiltroChange('codigoProveedor', e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Todos</em>
+                </MenuItem>
+                {codigosProveedorFiltrados.map((codigo) => (
+                  <MenuItem key={codigo} value={codigo}>
+                    {codigo}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </Box>
 

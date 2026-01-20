@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Typography,
@@ -20,6 +21,10 @@ import {
   IconButton,
   Chip,
   Checkbox,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -29,18 +34,68 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material'
 
+// Lista de detalles de auto disponibles para seleccionar
+const detallesAutoDisponibles = [
+  { marca: 'Toyota', modelo: 'Corolla', motorizacion: '1.6 16V', cilindrada: '1600cc' },
+  { marca: 'Toyota', modelo: 'Camry', motorizacion: '1.8 16V', cilindrada: '1800cc' },
+  { marca: 'Toyota', modelo: 'RAV4', motorizacion: '2.0 16V', cilindrada: '2000cc' },
+  { marca: 'Honda', modelo: 'Civic', motorizacion: '1.8 16V', cilindrada: '1800cc' },
+  { marca: 'Honda', modelo: 'Accord', motorizacion: '2.0 16V', cilindrada: '2000cc' },
+  { marca: 'Ford', modelo: 'Focus', motorizacion: '1.6 16V', cilindrada: '1600cc' },
+  { marca: 'Ford', modelo: 'Fiesta', motorizacion: '1.4 16V', cilindrada: '1400cc' },
+  { marca: 'Chevrolet', modelo: 'Cruze', motorizacion: '1.8 16V', cilindrada: '1800cc' },
+]
+
 export default function AgregarPage() {
-  const [openMarcaModal, setOpenMarcaModal] = useState(false)
+  const router = useRouter()
+  const [openDetalleAutoSeleccionModal, setOpenDetalleAutoSeleccionModal] = useState(false)
+  const [openDetalleAutoModal, setOpenDetalleAutoModal] = useState(false)
+  const [openMarcaSeleccionModal, setOpenMarcaSeleccionModal] = useState(false)
+  const [selectedDetallesAuto, setSelectedDetallesAuto] = useState<number[]>([])
+  const [openMarcaAgregarModal, setOpenMarcaAgregarModal] = useState(false)
   const [openOemModal, setOpenOemModal] = useState(false)
   const [openReemplazosModal, setOpenReemplazosModal] = useState(false)
   const [openComplementariosModal, setOpenComplementariosModal] = useState(false)
   const [openMotorizacionModal, setOpenMotorizacionModal] = useState(false)
+  const [detalleAutoEditando, setDetalleAutoEditando] = useState<number | null>(null)
+  const [detalleAutoFormData, setDetalleAutoFormData] = useState({
+    marca: '',
+    modelo: '',
+    motorizacion: '',
+    cilindrada: '',
+  })
   const [selectedComplementarios, setSelectedComplementarios] = useState<number[]>([])
   const [selectedReemplazos, setSelectedReemplazos] = useState<number[]>([])
+  const [selectedMarcas, setSelectedMarcas] = useState<number[]>([])
+  
+  // Estados para el formulario de agregar marca/modelo manualmente
+  const [nuevaMarca, setNuevaMarca] = useState('')
+  const [nuevoModelo, setNuevoModelo] = useState('')
+  const [editandoMarcaIndex, setEditandoMarcaIndex] = useState<number | null>(null)
+
+  // Estados para el formulario del modal OEM
+  const [oemFormData, setOemFormData] = useState({
+    fabricante: '',
+    codigoFabricante: '',
+    proveedor: '',
+    codigoProveedor: '',
+    precioCosto: '',
+    precioVenta: '',
+    stock: '',
+    ubicacion: '',
+  })
+  const [proveedores, setProveedores] = useState<Array<{ razonSocial: string; codigos: string[] }>>([])
   
   // Estados para el formulario
   const [nombreProducto, setNombreProducto] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
+  const [detallesAuto, setDetallesAuto] = useState<{
+    marca: string
+    modelo: string
+    motorizacion: string
+    cilindrada: string
+  }[]>([])
+  // Mantener estados separados para compatibilidad con el guardado
   const [marcasModelos, setMarcasModelos] = useState<{ marca: string; modelo: string }[]>([])
   const [motorizaciones, setMotorizaciones] = useState<{ nombre: string; cilindrada: string }[]>([])
   const [codigosOem, setCodigosOem] = useState<{
@@ -73,6 +128,26 @@ export default function AgregarPage() {
     stock: number
     ubicacion: string
   }[]>([])
+
+  // Lista de marcas y modelos disponibles (usando estado para poder editarla)
+  const [marcasModelosDisponibles, setMarcasModelosDisponibles] = useState([
+    { marca: 'Toyota', modelo: 'Corolla' },
+    { marca: 'Toyota', modelo: 'Camry' },
+    { marca: 'Toyota', modelo: 'RAV4' },
+    { marca: 'Toyota', modelo: 'Hilux' },
+    { marca: 'Honda', modelo: 'Civic' },
+    { marca: 'Honda', modelo: 'Accord' },
+    { marca: 'Honda', modelo: 'CR-V' },
+    { marca: 'Ford', modelo: 'Focus' },
+    { marca: 'Ford', modelo: 'Fiesta' },
+    { marca: 'Ford', modelo: 'Ranger' },
+    { marca: 'Chevrolet', modelo: 'Cruze' },
+    { marca: 'Chevrolet', modelo: 'Onix' },
+    { marca: 'Volkswagen', modelo: 'Gol' },
+    { marca: 'Volkswagen', modelo: 'Polo' },
+    { marca: 'Fiat', modelo: 'Palio' },
+    { marca: 'Fiat', modelo: 'Uno' },
+  ])
 
   // Lista de productos disponibles para seleccionar como reemplazos
   const productosDisponiblesReemplazos = [
@@ -170,8 +245,123 @@ export default function AgregarPage() {
     }
   }
 
+  const handleToggleMarca = (index: number) => {
+    setSelectedMarcas((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    )
+  }
+
+  const handleSelectAllMarcas = () => {
+    if (selectedMarcas.length === marcasModelosDisponibles.length) {
+      setSelectedMarcas([])
+    } else {
+      setSelectedMarcas(marcasModelosDisponibles.map((_, index) => index))
+    }
+  }
+
+  const handleToggleDetalleAuto = (index: number) => {
+    setSelectedDetallesAuto((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    )
+  }
+
+  const handleSelectAllDetallesAuto = () => {
+    if (selectedDetallesAuto.length === detallesAutoDisponibles.length) {
+      setSelectedDetallesAuto([])
+    } else {
+      setSelectedDetallesAuto(detallesAutoDisponibles.map((_: any, index: number) => index))
+    }
+  }
+
+  const handleAgregarDetallesAutoSeleccionados = () => {
+    const nuevosDetalles = selectedDetallesAuto.map((index: number) => detallesAutoDisponibles[index])
+    setDetallesAuto((prev) => [...prev, ...nuevosDetalles])
+    setSelectedDetallesAuto([])
+  }
+
+  const handleAgregarMarcasSeleccionadas = () => {
+    const nuevasMarcas = selectedMarcas.map((index) => marcasModelosDisponibles[index])
+    setMarcasModelos((prev) => [...prev, ...nuevasMarcas])
+    setSelectedMarcas([])
+  }
+
+  const handleEditarMarca = (index: number) => {
+    setEditandoMarcaIndex(index)
+    setNuevaMarca(marcasModelosDisponibles[index].marca)
+    setNuevoModelo(marcasModelosDisponibles[index].modelo)
+    setOpenMarcaSeleccionModal(false)
+    setOpenMarcaAgregarModal(true)
+  }
+
+  const handleBorrarMarca = (index: number) => {
+    if (confirm('¿Está seguro de que desea eliminar esta marca/modelo?')) {
+      setMarcasModelosDisponibles((prev) => prev.filter((_, i) => i !== index))
+      // Si estaba seleccionada, quitarla de la selección y ajustar índices
+      setSelectedMarcas((prev) =>
+        prev
+          .filter((i) => i !== index)
+          .map((i) => (i > index ? i - 1 : i))
+      )
+    }
+  }
+
+  // Cargar proveedores y sus códigos
+  useEffect(() => {
+    const cargarProveedores = () => {
+      // Datos hardcodeados de proveedores con códigos
+      const proveedoresHardcodeados = [
+        {
+          razonSocial: 'Distribuidora Central S.A.',
+          codigos: ['DC-789', 'DC-111', 'DC-999', 'DC-777', 'DC-333', 'DC-444', 'DC-666'],
+        },
+        {
+          razonSocial: 'Repuestos SA',
+          codigos: ['RS-456', 'RS-123', 'RS-222', 'RS-555'],
+        },
+        {
+          razonSocial: 'AutoPartes del Sur SRL',
+          codigos: ['AP-888'],
+        },
+      ]
+
+      // Cargar proveedores desde localStorage
+      const proveedoresGuardados = localStorage.getItem('proveedores')
+      let proveedoresDesdeStorage: Array<{ razonSocial: string; codigos: string[] }> = []
+
+      if (proveedoresGuardados) {
+        try {
+          const parsed = JSON.parse(proveedoresGuardados)
+          proveedoresDesdeStorage = parsed.map((p: any) => ({
+            razonSocial: p.razonSocial,
+            codigos: [`${p.razonSocial.substring(0, 2).toUpperCase()}-${Math.floor(Math.random() * 1000)}`], // Generar código basado en el nombre
+          }))
+        } catch {
+          proveedoresDesdeStorage = []
+        }
+      }
+
+      // Combinar proveedores hardcodeados con los de localStorage
+      setProveedores([...proveedoresHardcodeados, ...proveedoresDesdeStorage])
+    }
+
+    cargarProveedores()
+  }, [])
+
+  // Obtener códigos del proveedor seleccionado
+  const codigosProveedorSeleccionado = oemFormData.proveedor
+    ? proveedores.find((p) => p.razonSocial === oemFormData.proveedor)?.codigos || []
+    : []
+
   // Inicializar con datos de ejemplo
   useEffect(() => {
+    setDetallesAuto([
+      { marca: 'Toyota', modelo: 'Corolla', motorizacion: '1.6 16V', cilindrada: '1600cc' },
+      { marca: 'Toyota', modelo: 'Camry', motorizacion: '1.8 16V', cilindrada: '1800cc' },
+      { marca: 'Honda', modelo: 'Civic', motorizacion: '2.0 16V', cilindrada: '2000cc' },
+      { marca: 'Honda', modelo: 'Accord', motorizacion: '1.8 16V', cilindrada: '1800cc' },
+      { marca: 'Ford', modelo: 'Focus', motorizacion: '1.6 16V', cilindrada: '1600cc' },
+    ])
+    // Mantener datos separados para compatibilidad
     setMarcasModelos([
       { marca: 'Toyota', modelo: 'Corolla' },
       { marca: 'Toyota', modelo: 'Camry' },
@@ -236,12 +426,20 @@ export default function AgregarPage() {
       return
     }
 
+    // Convertir detallesAuto a formato separado para compatibilidad
+    const marcasDesdeDetalles = detallesAuto.map((d) => ({ marca: d.marca, modelo: d.modelo }))
+    const motorizacionesDesdeDetalles = detallesAuto.map((d) => ({
+      nombre: d.motorizacion,
+      cilindrada: d.cilindrada,
+    }))
+
     const nuevoRepuesto = {
       id: Date.now().toString(),
       nombre: nombreProducto,
       fotos: fotos,
-      marcas: marcasModelos,
-      motorizaciones: motorizaciones,
+      detallesAuto: detallesAuto,
+      marcas: marcasDesdeDetalles.length > 0 ? marcasDesdeDetalles : marcasModelos,
+      motorizaciones: motorizacionesDesdeDetalles.length > 0 ? motorizacionesDesdeDetalles : motorizaciones,
       codigosOem: codigosOem,
       reemplazos: reemplazos,
       productosComplementarios: productosComplementarios,
@@ -270,11 +468,28 @@ export default function AgregarPage() {
     // Limpiar el formulario
     setNombreProducto('')
     setFotos([])
+    setDetallesAuto([])
     setMarcasModelos([])
     setMotorizaciones([])
     setCodigosOem([])
     setReemplazos([])
     setProductosComplementarios([])
+  }
+
+  const handleCancel = () => {
+    if (confirm('¿Está seguro de que desea cancelar? Se perderán todos los datos ingresados.')) {
+      // Limpiar el formulario
+      setNombreProducto('')
+      setFotos([])
+      setDetallesAuto([])
+      setMarcasModelos([])
+      setMotorizaciones([])
+      setCodigosOem([])
+      setReemplazos([])
+      setProductosComplementarios([])
+      // Redirigir al dashboard
+      router.push('/dashboard')
+    }
   }
 
   return (
@@ -339,93 +554,66 @@ export default function AgregarPage() {
             </Box>
           </Box>
 
-          {/* Marca del auto */}
+          {/* Detalles de Auto */}
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" fontWeight={600}>
-                Marca del auto:
+                Detalles de Auto
               </Typography>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => setOpenMarcaModal(true)}
+                onClick={() => setOpenDetalleAutoSeleccionModal(true)}
                 sx={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
               >
-                Agregar Marca/Modelo
+                Agregar Detalle auto
               </Button>
             </Box>
             <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell><strong>Marca</strong></TableCell>
-                    <TableCell><strong>Modelo compatibles</strong></TableCell>
-                    <TableCell><strong>Acciones</strong></TableCell>
+                    <TableCell><Typography fontWeight="bold">Marca</Typography></TableCell>
+                    <TableCell><Typography fontWeight="bold">Modelo</Typography></TableCell>
+                    <TableCell><Typography fontWeight="bold">Motorización</Typography></TableCell>
+                    <TableCell><Typography fontWeight="bold">Cilindrada</Typography></TableCell>
+                    <TableCell><Typography fontWeight="bold">Acciones</Typography></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {marcasModelos.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.marca}</TableCell>
-                      <TableCell>{item.modelo}</TableCell>
-                      <TableCell>
-                        <IconButton size="small" color="primary" onClick={() => console.log('Editar', index)}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton size="small" color="error" onClick={() => console.log('Borrar', index)}>
-                          <DeleteIcon />
-                        </IconButton>
+                  {detallesAuto.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No hay detalles de auto cargados. Haga clic en &quot;Agregar Detalle auto&quot; para agregar uno.
+                        </Typography>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-
-          {/* Motorización */}
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" fontWeight={600}>
-                Motorización
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setOpenMotorizacionModal(true)}
-                sx={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                }}
-              >
-                Agregar Motorización
-              </Button>
-            </Box>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell><strong>Nombre</strong></TableCell>
-                    <TableCell><strong>Cilindrada</strong></TableCell>
-                    <TableCell><strong>Acciones</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {motorizaciones.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.nombre}</TableCell>
-                      <TableCell>{item.cilindrada}</TableCell>
-                      <TableCell>
-                        <IconButton size="small" color="primary" onClick={() => console.log('Editar', index)}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton size="small" color="error" onClick={() => console.log('Borrar', index)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  ) : (
+                    detallesAuto.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{item.marca}</TableCell>
+                        <TableCell>{item.modelo}</TableCell>
+                        <TableCell>{item.motorizacion}</TableCell>
+                        <TableCell>{item.cilindrada}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              if (confirm('¿Está seguro de que desea eliminar este detalle?')) {
+                                setDetallesAuto(detallesAuto.filter((_, i) => i !== index))
+                              }
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -453,7 +641,7 @@ export default function AgregarPage() {
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Fabricante</strong></TableCell>
-                    <TableCell><strong>Código Fabricante</strong></TableCell>
+                    <TableCell><strong>Código Fabricante (OEM)</strong></TableCell>
                     <TableCell><strong>Proveedor</strong></TableCell>
                     <TableCell><strong>Código Proveedor</strong></TableCell>
                     <TableCell><strong>Precio Costo</strong></TableCell>
@@ -599,8 +787,27 @@ export default function AgregarPage() {
             </TableContainer>
           </Box>
 
-          {/* Botón Guardar */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          {/* Botones Guardar y Cancelar */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={handleCancel}
+              sx={{
+                px: 6,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                borderColor: '#667eea',
+                color: '#667eea',
+                '&:hover': {
+                  borderColor: '#5568d3',
+                  backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                },
+              }}
+            >
+              CANCELAR
+            </Button>
             <Button
               variant="contained"
               size="large"
@@ -622,17 +829,161 @@ export default function AgregarPage() {
         </Box>
       </Paper>
 
-      {/* Modal Marca/Modelo */}
+      {/* Modal Selección Marca/Modelo */}
       <Dialog
-        open={openMarcaModal}
-        onClose={() => setOpenMarcaModal(false)}
+        open={openMarcaSeleccionModal}
+        onClose={() => {
+          setOpenMarcaSeleccionModal(false)
+          setSelectedMarcas([])
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Seleccionar Marca y Modelo
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditandoMarcaIndex(null)
+                setNuevaMarca('')
+                setNuevoModelo('')
+                setOpenMarcaSeleccionModal(false)
+                setOpenMarcaAgregarModal(true)
+              }}
+              sx={{
+                borderColor: '#667eea',
+                color: '#667eea',
+                '&:hover': {
+                  borderColor: '#5568d3',
+                  backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                },
+              }}
+            >
+              Nueva Marca/Modelo
+            </Button>
+            <IconButton
+              onClick={() => {
+                setOpenMarcaSeleccionModal(false)
+                setSelectedMarcas([])
+              }}
+              sx={{ ml: 1 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      indeterminate={
+                        selectedMarcas.length > 0 &&
+                        selectedMarcas.length < marcasModelosDisponibles.length
+                      }
+                      checked={
+                        marcasModelosDisponibles.length > 0 &&
+                        selectedMarcas.length === marcasModelosDisponibles.length
+                      }
+                      onChange={handleSelectAllMarcas}
+                    />
+                  </TableCell>
+                  <TableCell><strong>Marca</strong></TableCell>
+                  <TableCell><strong>Modelo</strong></TableCell>
+                  <TableCell><strong>Acciones</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {marcasModelosDisponibles.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedMarcas.includes(index)}
+                        onChange={() => handleToggleMarca(index)}
+                      />
+                    </TableCell>
+                    <TableCell>{item.marca}</TableCell>
+                    <TableCell>{item.modelo}</TableCell>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleEditarMarca(index)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleBorrarMarca(index)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenMarcaSeleccionModal(false)
+              setSelectedMarcas([])
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              // Agregar las marcas seleccionadas a la tabla
+              if (selectedMarcas.length > 0) {
+                handleAgregarMarcasSeleccionadas()
+              } else {
+                // Si no hay selecciones, solo cerrar el modal
+                setOpenMarcaSeleccionModal(false)
+              }
+            }}
+            disabled={selectedMarcas.length === 0}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            }}
+          >
+            Agregar ({selectedMarcas.length})
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Agregar Marca/Modelo Manualmente */}
+      <Dialog
+        open={openMarcaAgregarModal}
+        onClose={() => {
+          setOpenMarcaAgregarModal(false)
+          setEditandoMarcaIndex(null)
+          setNuevaMarca('')
+          setNuevoModelo('')
+          setOpenMarcaSeleccionModal(true)
+        }}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Agregar Marca y Modelo Compatible
+          {editandoMarcaIndex !== null ? 'Editar Marca y Modelo' : 'Agregar Marca y Modelo'}
           <IconButton
-            onClick={() => setOpenMarcaModal(false)}
+            onClick={() => {
+              setOpenMarcaAgregarModal(false)
+              setEditandoMarcaIndex(null)
+              setNuevaMarca('')
+              setNuevoModelo('')
+              setOpenMarcaSeleccionModal(true)
+            }}
             sx={{ position: 'absolute', right: 8, top: 8 }}
           >
             <CloseIcon />
@@ -641,21 +992,67 @@ export default function AgregarPage() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField fullWidth label="Marca" variant="outlined" />
-              <TextField fullWidth label="Modelo" variant="outlined" />
+              <TextField
+                fullWidth
+                label="Marca"
+                variant="outlined"
+                value={nuevaMarca}
+                onChange={(e) => setNuevaMarca(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Modelo"
+                variant="outlined"
+                value={nuevoModelo}
+                onChange={(e) => setNuevoModelo(e.target.value)}
+              />
             </Box>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenMarcaModal(false)}>Cancelar</Button>
+          <Button
+            onClick={() => {
+              setOpenMarcaAgregarModal(false)
+              setEditandoMarcaIndex(null)
+              setNuevaMarca('')
+              setNuevoModelo('')
+              setOpenMarcaSeleccionModal(true)
+            }}
+          >
+            Cancelar
+          </Button>
           <Button
             variant="contained"
-            onClick={() => setOpenMarcaModal(false)}
+            onClick={() => {
+              if (nuevaMarca.trim() && nuevoModelo.trim()) {
+                if (editandoMarcaIndex !== null) {
+                  // Editar marca/modelo existente en la lista disponible
+                  setMarcasModelosDisponibles((prev) =>
+                    prev.map((item, index) =>
+                      index === editandoMarcaIndex
+                        ? { marca: nuevaMarca, modelo: nuevoModelo }
+                        : item
+                    )
+                  )
+                  setEditandoMarcaIndex(null)
+                } else {
+                  // Agregar nueva marca/modelo a la lista disponible y a la tabla principal
+                  const nuevaMarcaModelo = { marca: nuevaMarca, modelo: nuevoModelo }
+                  setMarcasModelosDisponibles((prev) => [...prev, nuevaMarcaModelo])
+                  setMarcasModelos((prev) => [...prev, nuevaMarcaModelo])
+                }
+                setNuevaMarca('')
+                setNuevoModelo('')
+                setOpenMarcaAgregarModal(false)
+              } else {
+                alert('Por favor complete ambos campos')
+              }
+            }}
             sx={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             }}
           >
-            Agregar
+            {editandoMarcaIndex !== null ? 'Guardar' : 'Agregar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -679,26 +1076,148 @@ export default function AgregarPage() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField fullWidth label="Fabricante" variant="outlined" />
-              <TextField fullWidth label="Código Fabricante" variant="outlined" />
+              <TextField
+                fullWidth
+                label="Fabricante"
+                variant="outlined"
+                value={oemFormData.fabricante}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, fabricante: e.target.value }))}
+              />
+              <TextField
+                fullWidth
+                label="Código Fabricante"
+                variant="outlined"
+                value={oemFormData.codigoFabricante}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, codigoFabricante: e.target.value }))}
+              />
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField fullWidth label="Proveedor" variant="outlined" />
-              <TextField fullWidth label="Código Proveedor" variant="outlined" />
+              <FormControl fullWidth>
+                <InputLabel>Proveedor</InputLabel>
+                <Select
+                  value={oemFormData.proveedor}
+                  label="Proveedor"
+                  onChange={(e) => {
+                    setOemFormData((prev) => ({
+                      ...prev,
+                      proveedor: e.target.value,
+                      codigoProveedor: '', // Limpiar código al cambiar proveedor
+                    }))
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>Seleccione un proveedor</em>
+                  </MenuItem>
+                  {proveedores.map((proveedor) => (
+                    <MenuItem key={proveedor.razonSocial} value={proveedor.razonSocial}>
+                      {proveedor.razonSocial}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth disabled={!oemFormData.proveedor}>
+                <InputLabel>Código Proveedor</InputLabel>
+                <Select
+                  value={oemFormData.codigoProveedor}
+                  label="Código Proveedor"
+                  onChange={(e) =>
+                    setOemFormData((prev) => ({ ...prev, codigoProveedor: e.target.value }))
+                  }
+                >
+                  <MenuItem value="">
+                    <em>Seleccione un código</em>
+                  </MenuItem>
+                  {codigosProveedorSeleccionado.map((codigo) => (
+                    <MenuItem key={codigo} value={codigo}>
+                      {codigo}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField fullWidth label="Precio Costo" type="number" variant="outlined" />
-              <TextField fullWidth label="Precio Venta" type="number" variant="outlined" />
-              <TextField fullWidth label="Stock" type="number" variant="outlined" />
-              <TextField fullWidth label="Ubicación" variant="outlined" />
+              <TextField
+                fullWidth
+                label="Precio Costo"
+                type="number"
+                variant="outlined"
+                value={oemFormData.precioCosto}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, precioCosto: e.target.value }))}
+              />
+              <TextField
+                fullWidth
+                label="Precio Venta"
+                type="number"
+                variant="outlined"
+                value={oemFormData.precioVenta}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, precioVenta: e.target.value }))}
+              />
+              <TextField
+                fullWidth
+                label="Stock"
+                type="number"
+                variant="outlined"
+                value={oemFormData.stock}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, stock: e.target.value }))}
+              />
+              <TextField
+                fullWidth
+                label="Ubicación"
+                variant="outlined"
+                value={oemFormData.ubicacion}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, ubicacion: e.target.value }))}
+              />
             </Box>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenOemModal(false)}>Cancelar</Button>
+          <Button
+            onClick={() => {
+              setOpenOemModal(false)
+              setOemFormData({
+                fabricante: '',
+                codigoFabricante: '',
+                proveedor: '',
+                codigoProveedor: '',
+                precioCosto: '',
+                precioVenta: '',
+                stock: '',
+                ubicacion: '',
+              })
+            }}
+          >
+            Cancelar
+          </Button>
           <Button
             variant="contained"
-            onClick={() => setOpenOemModal(false)}
+            onClick={() => {
+              if (!oemFormData.fabricante || !oemFormData.codigoFabricante || !oemFormData.proveedor || !oemFormData.codigoProveedor) {
+                alert('Por favor complete todos los campos requeridos')
+                return
+              }
+              const nuevoOem = {
+                fabricante: oemFormData.fabricante,
+                codigoFabricante: oemFormData.codigoFabricante,
+                proveedor: oemFormData.proveedor,
+                codigoProveedor: oemFormData.codigoProveedor,
+                precioCosto: parseFloat(oemFormData.precioCosto) || 0,
+                precioVenta: parseFloat(oemFormData.precioVenta) || 0,
+                stock: parseInt(oemFormData.stock) || 0,
+                ubicacion: oemFormData.ubicacion,
+              }
+              setCodigosOem((prev) => [...prev, nuevoOem])
+              setOpenOemModal(false)
+              setOemFormData({
+                fabricante: '',
+                codigoFabricante: '',
+                proveedor: '',
+                codigoProveedor: '',
+                precioCosto: '',
+                precioVenta: '',
+                stock: '',
+                ubicacion: '',
+              })
+            }}
             sx={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             }}
@@ -807,17 +1326,152 @@ export default function AgregarPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Modal Motorización */}
+      {/* Modal Selección Detalle de Auto */}
       <Dialog
-        open={openMotorizacionModal}
-        onClose={() => setOpenMotorizacionModal(false)}
+        open={openDetalleAutoSeleccionModal}
+        onClose={() => {
+          setOpenDetalleAutoSeleccionModal(false)
+          setSelectedDetallesAuto([])
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Seleccionar Detalle de Auto
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setDetalleAutoEditando(null)
+                setDetalleAutoFormData({
+                  marca: '',
+                  modelo: '',
+                  motorizacion: '',
+                  cilindrada: '',
+                })
+                setOpenDetalleAutoSeleccionModal(false)
+                setOpenDetalleAutoModal(true)
+              }}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              }}
+            >
+              Agregar
+            </Button>
+            <IconButton
+              onClick={() => {
+                setOpenDetalleAutoSeleccionModal(false)
+                setSelectedDetallesAuto([])
+              }}
+              sx={{ ml: 1 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <TableContainer sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      indeterminate={
+                        selectedDetallesAuto.length > 0 &&
+                        selectedDetallesAuto.length < detallesAutoDisponibles.length
+                      }
+                      checked={
+                        detallesAutoDisponibles.length > 0 &&
+                        selectedDetallesAuto.length === detallesAutoDisponibles.length
+                      }
+                      onChange={handleSelectAllDetallesAuto}
+                    />
+                  </TableCell>
+                  <TableCell><Typography fontWeight="bold">Marca</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Modelo</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Motorización</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Cilindrada</Typography></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {detallesAutoDisponibles.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedDetallesAuto.includes(index)}
+                        onChange={() => handleToggleDetalleAuto(index)}
+                      />
+                    </TableCell>
+                    <TableCell>{item.marca}</TableCell>
+                    <TableCell>{item.modelo}</TableCell>
+                    <TableCell>{item.motorizacion}</TableCell>
+                    <TableCell>{item.cilindrada}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenDetalleAutoSeleccionModal(false)
+              setSelectedDetallesAuto([])
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (selectedDetallesAuto.length > 0) {
+                handleAgregarDetallesAutoSeleccionados()
+              }
+              setOpenDetalleAutoSeleccionModal(false)
+            }}
+            disabled={selectedDetallesAuto.length === 0}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            }}
+          >
+            Agregar Seleccionados ({selectedDetallesAuto.length})
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Agregar Detalle de Auto */}
+      <Dialog
+        open={openDetalleAutoModal}
+        onClose={() => {
+          setOpenDetalleAutoModal(false)
+          setDetalleAutoEditando(null)
+          setDetalleAutoFormData({
+            marca: '',
+            modelo: '',
+            motorizacion: '',
+            cilindrada: '',
+          })
+          setOpenDetalleAutoSeleccionModal(true)
+        }}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Agregar Motorización
+          {detalleAutoEditando !== null ? 'Editar Detalle de Auto' : 'Agregar Detalle de Auto'}
           <IconButton
-            onClick={() => setOpenMotorizacionModal(false)}
+            onClick={() => {
+              setOpenDetalleAutoModal(false)
+              setDetalleAutoEditando(null)
+              setDetalleAutoFormData({
+                marca: '',
+                modelo: '',
+                motorizacion: '',
+                cilindrada: '',
+              })
+              setOpenDetalleAutoSeleccionModal(true)
+            }}
             sx={{ position: 'absolute', right: 8, top: 8 }}
           >
             <CloseIcon />
@@ -826,21 +1480,95 @@ export default function AgregarPage() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField fullWidth label="Nombre" variant="outlined" placeholder="Ej: 1.6 16V" />
-              <TextField fullWidth label="Cilindrada" variant="outlined" placeholder="Ej: 1600cc" />
+              <TextField
+                fullWidth
+                label="Marca"
+                variant="outlined"
+                value={detalleAutoFormData.marca}
+                onChange={(e) => setDetalleAutoFormData((prev) => ({ ...prev, marca: e.target.value }))}
+                placeholder="Ej: Toyota"
+              />
+              <TextField
+                fullWidth
+                label="Modelo"
+                variant="outlined"
+                value={detalleAutoFormData.modelo}
+                onChange={(e) => setDetalleAutoFormData((prev) => ({ ...prev, modelo: e.target.value }))}
+                placeholder="Ej: Corolla"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+              <TextField
+                fullWidth
+                label="Motorización"
+                variant="outlined"
+                value={detalleAutoFormData.motorizacion}
+                onChange={(e) => setDetalleAutoFormData((prev) => ({ ...prev, motorizacion: e.target.value }))}
+                placeholder="Ej: 1.6 16V"
+              />
+              <TextField
+                fullWidth
+                label="Cilindrada"
+                variant="outlined"
+                value={detalleAutoFormData.cilindrada}
+                onChange={(e) => setDetalleAutoFormData((prev) => ({ ...prev, cilindrada: e.target.value }))}
+                placeholder="Ej: 1600cc"
+              />
             </Box>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenMotorizacionModal(false)}>Cancelar</Button>
+          <Button
+            onClick={() => {
+              setOpenDetalleAutoModal(false)
+              setDetalleAutoEditando(null)
+              setDetalleAutoFormData({
+                marca: '',
+                modelo: '',
+                motorizacion: '',
+                cilindrada: '',
+              })
+              setOpenDetalleAutoSeleccionModal(true)
+            }}
+          >
+            Cancelar
+          </Button>
           <Button
             variant="contained"
-            onClick={() => setOpenMotorizacionModal(false)}
+            onClick={() => {
+              if (
+                !detalleAutoFormData.marca.trim() ||
+                !detalleAutoFormData.modelo.trim() ||
+                !detalleAutoFormData.motorizacion.trim() ||
+                !detalleAutoFormData.cilindrada.trim()
+              ) {
+                alert('Por favor complete todos los campos')
+                return
+              }
+              if (detalleAutoEditando !== null) {
+                // Editar detalle existente
+                setDetallesAuto((prev) =>
+                  prev.map((item, index) => (index === detalleAutoEditando ? detalleAutoFormData : item))
+                )
+              } else {
+                // Agregar nuevo detalle
+                setDetallesAuto((prev) => [...prev, detalleAutoFormData])
+              }
+              setOpenDetalleAutoModal(false)
+              setDetalleAutoEditando(null)
+              setDetalleAutoFormData({
+                marca: '',
+                modelo: '',
+                motorizacion: '',
+                cilindrada: '',
+              })
+              setOpenDetalleAutoSeleccionModal(true)
+            }}
             sx={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             }}
           >
-            Agregar
+            {detalleAutoEditando !== null ? 'Guardar' : 'Agregar'}
           </Button>
         </DialogActions>
       </Dialog>
