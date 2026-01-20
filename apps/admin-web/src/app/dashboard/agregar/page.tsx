@@ -32,6 +32,7 @@ import {
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material'
 
 // Lista de detalles de auto disponibles para seleccionar
@@ -53,6 +54,13 @@ export default function AgregarPage() {
   const [openMarcaSeleccionModal, setOpenMarcaSeleccionModal] = useState(false)
   const [selectedDetallesAuto, setSelectedDetallesAuto] = useState<number[]>([])
   const [openMarcaAgregarModal, setOpenMarcaAgregarModal] = useState(false)
+  // Estados para filtros de búsqueda en modal de detalles de auto
+  const [filtrosDetalleAuto, setFiltrosDetalleAuto] = useState({
+    marca: '',
+    modelo: '',
+    motorizacion: '',
+    cilindrada: '',
+  })
   const [openOemModal, setOpenOemModal] = useState(false)
   const [openReemplazosModal, setOpenReemplazosModal] = useState(false)
   const [openComplementariosModal, setOpenComplementariosModal] = useState(false)
@@ -66,7 +74,23 @@ export default function AgregarPage() {
   })
   const [selectedComplementarios, setSelectedComplementarios] = useState<number[]>([])
   const [selectedReemplazos, setSelectedReemplazos] = useState<number[]>([])
+  // Estados para filtros de búsqueda en modal de productos complementarios
+  const [filtrosComplementario, setFiltrosComplementario] = useState({
+    fabricante: '',
+    codigoFabricante: '',
+    proveedor: '',
+    codigoProveedor: '',
+    ubicacion: '',
+  })
   const [selectedMarcas, setSelectedMarcas] = useState<number[]>([])
+  // Estados para filtros de búsqueda en modal de reemplazos
+  const [filtrosReemplazo, setFiltrosReemplazo] = useState({
+    fabricante: '',
+    codigoFabricante: '',
+    proveedor: '',
+    codigoProveedor: '',
+    ubicacion: '',
+  })
   
   // Estados para el formulario de agregar marca/modelo manualmente
   const [nuevaMarca, setNuevaMarca] = useState('')
@@ -223,11 +247,51 @@ export default function AgregarPage() {
     )
   }
 
+  // Función para filtrar productos complementarios disponibles
+  const complementariosFiltrados = productosDisponibles.filter((item) => {
+    const fabricanteMatch = filtrosComplementario.fabricante === '' || 
+      item.fabricante.toLowerCase().includes(filtrosComplementario.fabricante.toLowerCase())
+    const codigoFabricanteMatch = filtrosComplementario.codigoFabricante === '' || 
+      item.codigoFabricante.toLowerCase().includes(filtrosComplementario.codigoFabricante.toLowerCase())
+    const proveedorMatch = filtrosComplementario.proveedor === '' || 
+      item.proveedor.toLowerCase().includes(filtrosComplementario.proveedor.toLowerCase())
+    const codigoProveedorMatch = filtrosComplementario.codigoProveedor === '' || 
+      item.codigoProveedor.toLowerCase().includes(filtrosComplementario.codigoProveedor.toLowerCase())
+    const ubicacionMatch = filtrosComplementario.ubicacion === '' || 
+      item.ubicacion.toLowerCase().includes(filtrosComplementario.ubicacion.toLowerCase())
+    return fabricanteMatch && codigoFabricanteMatch && proveedorMatch && codigoProveedorMatch && ubicacionMatch
+  })
+
+  // Mapeo de índices filtrados a índices originales para productos complementarios
+  const indicesComplementariosFiltradosAMap = complementariosFiltrados.map((itemFiltrado) => {
+    return productosDisponibles.findIndex((item) => 
+      item.fabricante === itemFiltrado.fabricante &&
+      item.codigoFabricante === itemFiltrado.codigoFabricante &&
+      item.proveedor === itemFiltrado.proveedor &&
+      item.codigoProveedor === itemFiltrado.codigoProveedor &&
+      item.ubicacion === itemFiltrado.ubicacion
+    )
+  })
+
   const handleSelectAllComplementarios = () => {
-    if (selectedComplementarios.length === productosDisponibles.length) {
-      setSelectedComplementarios([])
+    const todosLosIndicesFiltrados = indicesComplementariosFiltradosAMap
+    const todosSeleccionados = todosLosIndicesFiltrados.length > 0 && 
+      todosLosIndicesFiltrados.every((idx) => selectedComplementarios.includes(idx))
+    
+    if (todosSeleccionados) {
+      // Deseleccionar todos los filtrados
+      setSelectedComplementarios((prev) => prev.filter((idx) => !indicesComplementariosFiltradosAMap.includes(idx)))
     } else {
-      setSelectedComplementarios(productosDisponibles.map((_, index) => index))
+      // Seleccionar todos los filtrados
+      setSelectedComplementarios((prev) => {
+        const nuevos = [...prev]
+        indicesComplementariosFiltradosAMap.forEach((idx) => {
+          if (!nuevos.includes(idx)) {
+            nuevos.push(idx)
+          }
+        })
+        return nuevos
+      })
     }
   }
 
@@ -237,11 +301,51 @@ export default function AgregarPage() {
     )
   }
 
+  // Función para filtrar reemplazos disponibles
+  const reemplazosFiltrados = productosDisponiblesReemplazos.filter((item) => {
+    const fabricanteMatch = filtrosReemplazo.fabricante === '' || 
+      item.fabricante.toLowerCase().includes(filtrosReemplazo.fabricante.toLowerCase())
+    const codigoFabricanteMatch = filtrosReemplazo.codigoFabricante === '' || 
+      item.codigoFabricante.toLowerCase().includes(filtrosReemplazo.codigoFabricante.toLowerCase())
+    const proveedorMatch = filtrosReemplazo.proveedor === '' || 
+      item.proveedor.toLowerCase().includes(filtrosReemplazo.proveedor.toLowerCase())
+    const codigoProveedorMatch = filtrosReemplazo.codigoProveedor === '' || 
+      item.codigoProveedor.toLowerCase().includes(filtrosReemplazo.codigoProveedor.toLowerCase())
+    const ubicacionMatch = filtrosReemplazo.ubicacion === '' || 
+      item.ubicacion.toLowerCase().includes(filtrosReemplazo.ubicacion.toLowerCase())
+    return fabricanteMatch && codigoFabricanteMatch && proveedorMatch && codigoProveedorMatch && ubicacionMatch
+  })
+
+  // Mapeo de índices filtrados a índices originales para reemplazos
+  const indicesReemplazosFiltradosAMap = reemplazosFiltrados.map((itemFiltrado) => {
+    return productosDisponiblesReemplazos.findIndex((item) => 
+      item.fabricante === itemFiltrado.fabricante &&
+      item.codigoFabricante === itemFiltrado.codigoFabricante &&
+      item.proveedor === itemFiltrado.proveedor &&
+      item.codigoProveedor === itemFiltrado.codigoProveedor &&
+      item.ubicacion === itemFiltrado.ubicacion
+    )
+  })
+
   const handleSelectAllReemplazos = () => {
-    if (selectedReemplazos.length === productosDisponiblesReemplazos.length) {
-      setSelectedReemplazos([])
+    const todosLosIndicesFiltrados = indicesReemplazosFiltradosAMap
+    const todosSeleccionados = todosLosIndicesFiltrados.length > 0 && 
+      todosLosIndicesFiltrados.every((idx) => selectedReemplazos.includes(idx))
+    
+    if (todosSeleccionados) {
+      // Deseleccionar todos los filtrados
+      setSelectedReemplazos((prev) => prev.filter((idx) => !indicesReemplazosFiltradosAMap.includes(idx)))
     } else {
-      setSelectedReemplazos(productosDisponiblesReemplazos.map((_, index) => index))
+      // Seleccionar todos los filtrados
+      setSelectedReemplazos((prev) => {
+        const nuevos = [...prev]
+        indicesReemplazosFiltradosAMap.forEach((idx) => {
+          if (!nuevos.includes(idx)) {
+            nuevos.push(idx)
+          }
+        })
+        return nuevos
+      })
     }
   }
 
@@ -265,11 +369,48 @@ export default function AgregarPage() {
     )
   }
 
+  // Función para filtrar detalles de auto disponibles
+  const detallesAutoFiltrados = detallesAutoDisponibles.filter((item) => {
+    const marcaMatch = filtrosDetalleAuto.marca === '' || 
+      item.marca.toLowerCase().includes(filtrosDetalleAuto.marca.toLowerCase())
+    const modeloMatch = filtrosDetalleAuto.modelo === '' || 
+      item.modelo.toLowerCase().includes(filtrosDetalleAuto.modelo.toLowerCase())
+    const motorizacionMatch = filtrosDetalleAuto.motorizacion === '' || 
+      item.motorizacion.toLowerCase().includes(filtrosDetalleAuto.motorizacion.toLowerCase())
+    const cilindradaMatch = filtrosDetalleAuto.cilindrada === '' || 
+      item.cilindrada.toLowerCase().includes(filtrosDetalleAuto.cilindrada.toLowerCase())
+    return marcaMatch && modeloMatch && motorizacionMatch && cilindradaMatch
+  })
+
+  // Mapeo de índices filtrados a índices originales
+  const indicesFiltradosAMap = detallesAutoFiltrados.map((itemFiltrado) => {
+    return detallesAutoDisponibles.findIndex((item) => 
+      item.marca === itemFiltrado.marca &&
+      item.modelo === itemFiltrado.modelo &&
+      item.motorizacion === itemFiltrado.motorizacion &&
+      item.cilindrada === itemFiltrado.cilindrada
+    )
+  })
+
   const handleSelectAllDetallesAuto = () => {
-    if (selectedDetallesAuto.length === detallesAutoDisponibles.length) {
-      setSelectedDetallesAuto([])
+    const todosLosIndicesFiltrados = indicesFiltradosAMap
+    const todosSeleccionados = todosLosIndicesFiltrados.length > 0 && 
+      todosLosIndicesFiltrados.every((idx) => selectedDetallesAuto.includes(idx))
+    
+    if (todosSeleccionados) {
+      // Deseleccionar todos los filtrados
+      setSelectedDetallesAuto((prev) => prev.filter((idx) => !indicesFiltradosAMap.includes(idx)))
     } else {
-      setSelectedDetallesAuto(detallesAutoDisponibles.map((_: any, index: number) => index))
+      // Seleccionar todos los filtrados
+      setSelectedDetallesAuto((prev) => {
+        const nuevos = [...prev]
+        indicesFiltradosAMap.forEach((idx) => {
+          if (!nuevos.includes(idx)) {
+            nuevos.push(idx)
+          }
+        })
+        return nuevos
+      })
     }
   }
 
@@ -277,6 +418,7 @@ export default function AgregarPage() {
     const nuevosDetalles = selectedDetallesAuto.map((index: number) => detallesAutoDisponibles[index])
     setDetallesAuto((prev) => [...prev, ...nuevosDetalles])
     setSelectedDetallesAuto([])
+    setFiltrosDetalleAuto({ marca: '', modelo: '', motorizacion: '', cilindrada: '' })
   }
 
   const handleAgregarMarcasSeleccionadas = () => {
@@ -1233,6 +1375,7 @@ export default function AgregarPage() {
         onClose={() => {
           setOpenReemplazosModal(false)
           setSelectedReemplazos([])
+          setFiltrosReemplazo({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
         }}
         maxWidth="lg"
         fullWidth
@@ -1243,6 +1386,7 @@ export default function AgregarPage() {
             onClick={() => {
               setOpenReemplazosModal(false)
               setSelectedReemplazos([])
+              setFiltrosReemplazo({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
             }}
             sx={{ position: 'absolute', right: 8, top: 8 }}
           >
@@ -1250,52 +1394,134 @@ export default function AgregarPage() {
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          <TableContainer sx={{ mt: 2 }}>
+          {/* Filtros de búsqueda */}
+          <Paper elevation={1} sx={{ p: 2, mb: 3, mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <SearchIcon sx={{ fontSize: 20, color: '#667eea', mr: 1 }} />
+              <Typography variant="subtitle1" fontWeight={600}>
+                Buscar Reemplazos
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Fabricante"
+                variant="outlined"
+                size="small"
+                value={filtrosReemplazo.fabricante}
+                onChange={(e) => setFiltrosReemplazo((prev) => ({ ...prev, fabricante: e.target.value }))}
+                placeholder="Ej: Toyota"
+              />
+              <TextField
+                fullWidth
+                label="Código Fabricante"
+                variant="outlined"
+                size="small"
+                value={filtrosReemplazo.codigoFabricante}
+                onChange={(e) => setFiltrosReemplazo((prev) => ({ ...prev, codigoFabricante: e.target.value }))}
+                placeholder="Ej: TOY-44444"
+              />
+              <TextField
+                fullWidth
+                label="Proveedor"
+                variant="outlined"
+                size="small"
+                value={filtrosReemplazo.proveedor}
+                onChange={(e) => setFiltrosReemplazo((prev) => ({ ...prev, proveedor: e.target.value }))}
+                placeholder="Ej: Distribuidora Central"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Código Proveedor"
+                variant="outlined"
+                size="small"
+                value={filtrosReemplazo.codigoProveedor}
+                onChange={(e) => setFiltrosReemplazo((prev) => ({ ...prev, codigoProveedor: e.target.value }))}
+                placeholder="Ej: DC-444"
+              />
+              <TextField
+                fullWidth
+                label="Ubicación"
+                variant="outlined"
+                size="small"
+                value={filtrosReemplazo.ubicacion}
+                onChange={(e) => setFiltrosReemplazo((prev) => ({ ...prev, ubicacion: e.target.value }))}
+                placeholder="Ej: D-01"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setFiltrosReemplazo({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })}
+              >
+                Limpiar Filtros
+              </Button>
+            </Box>
+          </Paper>
+
+          <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox
                       indeterminate={
-                        selectedReemplazos.length > 0 &&
-                        selectedReemplazos.length < productosDisponiblesReemplazos.length
+                        indicesReemplazosFiltradosAMap.length > 0 &&
+                        indicesReemplazosFiltradosAMap.some((idx) => selectedReemplazos.includes(idx)) &&
+                        !indicesReemplazosFiltradosAMap.every((idx) => selectedReemplazos.includes(idx))
                       }
                       checked={
-                        productosDisponiblesReemplazos.length > 0 &&
-                        selectedReemplazos.length === productosDisponiblesReemplazos.length
+                        indicesReemplazosFiltradosAMap.length > 0 &&
+                        indicesReemplazosFiltradosAMap.every((idx) => selectedReemplazos.includes(idx))
                       }
                       onChange={handleSelectAllReemplazos}
                     />
                   </TableCell>
-                  <TableCell><strong>Fabricante</strong></TableCell>
-                  <TableCell><strong>Código Fabricante</strong></TableCell>
-                  <TableCell><strong>Proveedor</strong></TableCell>
-                  <TableCell><strong>Código Proveedor</strong></TableCell>
-                  <TableCell><strong>Precio Costo</strong></TableCell>
-                  <TableCell><strong>Precio Venta</strong></TableCell>
-                  <TableCell><strong>Stock</strong></TableCell>
-                  <TableCell><strong>Ubicación</strong></TableCell>
+                  <TableCell><Typography fontWeight="bold">Fabricante</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Código Fabricante</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Proveedor</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Código Proveedor</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Precio Costo</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Precio Venta</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Stock</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Ubicación</Typography></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {productosDisponiblesReemplazos.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedReemplazos.includes(index)}
-                        onChange={() => handleToggleReemplazo(index)}
-                      />
+                {reemplazosFiltrados.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No se encontraron reemplazos con los filtros aplicados.
+                      </Typography>
                     </TableCell>
-                    <TableCell>{item.fabricante}</TableCell>
-                    <TableCell>{item.codigoFabricante}</TableCell>
-                    <TableCell>{item.proveedor}</TableCell>
-                    <TableCell>{item.codigoProveedor}</TableCell>
-                    <TableCell>${item.precioCosto.toLocaleString()}</TableCell>
-                    <TableCell>${item.precioVenta.toLocaleString()}</TableCell>
-                    <TableCell>{item.stock}</TableCell>
-                    <TableCell>{item.ubicacion}</TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  reemplazosFiltrados.map((item, indexFiltrado) => {
+                    const indexOriginal = indicesReemplazosFiltradosAMap[indexFiltrado]
+                    return (
+                      <TableRow key={indexOriginal}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedReemplazos.includes(indexOriginal)}
+                            onChange={() => handleToggleReemplazo(indexOriginal)}
+                          />
+                        </TableCell>
+                        <TableCell>{item.fabricante}</TableCell>
+                        <TableCell>{item.codigoFabricante}</TableCell>
+                        <TableCell>{item.proveedor}</TableCell>
+                        <TableCell>{item.codigoProveedor}</TableCell>
+                        <TableCell>${item.precioCosto.toLocaleString()}</TableCell>
+                        <TableCell>${item.precioVenta.toLocaleString()}</TableCell>
+                        <TableCell>{item.stock}</TableCell>
+                        <TableCell>{item.ubicacion}</TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -1305,6 +1531,7 @@ export default function AgregarPage() {
             onClick={() => {
               setOpenReemplazosModal(false)
               setSelectedReemplazos([])
+              setFiltrosReemplazo({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
             }}
           >
             Cancelar
@@ -1315,6 +1542,7 @@ export default function AgregarPage() {
               console.log('Reemplazos seleccionados:', selectedReemplazos)
               setOpenReemplazosModal(false)
               setSelectedReemplazos([])
+              setFiltrosReemplazo({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
             }}
             disabled={selectedReemplazos.length === 0}
             sx={{
@@ -1364,6 +1592,7 @@ export default function AgregarPage() {
               onClick={() => {
                 setOpenDetalleAutoSeleccionModal(false)
                 setSelectedDetallesAuto([])
+                setFiltrosDetalleAuto({ marca: '', modelo: '', motorizacion: '', cilindrada: '' })
               }}
               sx={{ ml: 1 }}
             >
@@ -1372,19 +1601,77 @@ export default function AgregarPage() {
           </Box>
         </DialogTitle>
         <DialogContent>
-          <TableContainer sx={{ mt: 2 }}>
+          {/* Filtros de búsqueda */}
+          <Paper elevation={1} sx={{ p: 2, mb: 3, mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <SearchIcon sx={{ fontSize: 20, color: '#667eea', mr: 1 }} />
+              <Typography variant="subtitle1" fontWeight={600}>
+                Buscar Detalles de Auto
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Marca"
+                variant="outlined"
+                size="small"
+                value={filtrosDetalleAuto.marca}
+                onChange={(e) => setFiltrosDetalleAuto((prev) => ({ ...prev, marca: e.target.value }))}
+                placeholder="Ej: Toyota"
+              />
+              <TextField
+                fullWidth
+                label="Modelo"
+                variant="outlined"
+                size="small"
+                value={filtrosDetalleAuto.modelo}
+                onChange={(e) => setFiltrosDetalleAuto((prev) => ({ ...prev, modelo: e.target.value }))}
+                placeholder="Ej: Corolla"
+              />
+              <TextField
+                fullWidth
+                label="Motorización"
+                variant="outlined"
+                size="small"
+                value={filtrosDetalleAuto.motorizacion}
+                onChange={(e) => setFiltrosDetalleAuto((prev) => ({ ...prev, motorizacion: e.target.value }))}
+                placeholder="Ej: 1.6 16V"
+              />
+              <TextField
+                fullWidth
+                label="Cilindrada"
+                variant="outlined"
+                size="small"
+                value={filtrosDetalleAuto.cilindrada}
+                onChange={(e) => setFiltrosDetalleAuto((prev) => ({ ...prev, cilindrada: e.target.value }))}
+                placeholder="Ej: 1600cc"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setFiltrosDetalleAuto({ marca: '', modelo: '', motorizacion: '', cilindrada: '' })}
+              >
+                Limpiar Filtros
+              </Button>
+            </Box>
+          </Paper>
+
+          <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox
                       indeterminate={
-                        selectedDetallesAuto.length > 0 &&
-                        selectedDetallesAuto.length < detallesAutoDisponibles.length
+                        indicesFiltradosAMap.length > 0 &&
+                        indicesFiltradosAMap.some((idx) => selectedDetallesAuto.includes(idx)) &&
+                        !indicesFiltradosAMap.every((idx) => selectedDetallesAuto.includes(idx))
                       }
                       checked={
-                        detallesAutoDisponibles.length > 0 &&
-                        selectedDetallesAuto.length === detallesAutoDisponibles.length
+                        indicesFiltradosAMap.length > 0 &&
+                        indicesFiltradosAMap.every((idx) => selectedDetallesAuto.includes(idx))
                       }
                       onChange={handleSelectAllDetallesAuto}
                     />
@@ -1396,20 +1683,33 @@ export default function AgregarPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {detallesAutoDisponibles.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedDetallesAuto.includes(index)}
-                        onChange={() => handleToggleDetalleAuto(index)}
-                      />
+                {detallesAutoFiltrados.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No se encontraron detalles de auto con los filtros aplicados.
+                      </Typography>
                     </TableCell>
-                    <TableCell>{item.marca}</TableCell>
-                    <TableCell>{item.modelo}</TableCell>
-                    <TableCell>{item.motorizacion}</TableCell>
-                    <TableCell>{item.cilindrada}</TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  detallesAutoFiltrados.map((item, indexFiltrado) => {
+                    const indexOriginal = indicesFiltradosAMap[indexFiltrado]
+                    return (
+                      <TableRow key={indexOriginal}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedDetallesAuto.includes(indexOriginal)}
+                            onChange={() => handleToggleDetalleAuto(indexOriginal)}
+                          />
+                        </TableCell>
+                        <TableCell>{item.marca}</TableCell>
+                        <TableCell>{item.modelo}</TableCell>
+                        <TableCell>{item.motorizacion}</TableCell>
+                        <TableCell>{item.cilindrada}</TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -1419,6 +1719,7 @@ export default function AgregarPage() {
             onClick={() => {
               setOpenDetalleAutoSeleccionModal(false)
               setSelectedDetallesAuto([])
+              setFiltrosDetalleAuto({ marca: '', modelo: '', motorizacion: '', cilindrada: '' })
             }}
           >
             Cancelar
@@ -1579,6 +1880,7 @@ export default function AgregarPage() {
         onClose={() => {
           setOpenComplementariosModal(false)
           setSelectedComplementarios([])
+          setFiltrosComplementario({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
         }}
         maxWidth="lg"
         fullWidth
@@ -1589,6 +1891,7 @@ export default function AgregarPage() {
             onClick={() => {
               setOpenComplementariosModal(false)
               setSelectedComplementarios([])
+              setFiltrosComplementario({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
             }}
             sx={{ position: 'absolute', right: 8, top: 8 }}
           >
@@ -1596,52 +1899,134 @@ export default function AgregarPage() {
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          <TableContainer sx={{ mt: 2 }}>
+          {/* Filtros de búsqueda */}
+          <Paper elevation={1} sx={{ p: 2, mb: 3, mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <SearchIcon sx={{ fontSize: 20, color: '#667eea', mr: 1 }} />
+              <Typography variant="subtitle1" fontWeight={600}>
+                Buscar Productos Complementarios
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Fabricante"
+                variant="outlined"
+                size="small"
+                value={filtrosComplementario.fabricante}
+                onChange={(e) => setFiltrosComplementario((prev) => ({ ...prev, fabricante: e.target.value }))}
+                placeholder="Ej: Toyota"
+              />
+              <TextField
+                fullWidth
+                label="Código Fabricante"
+                variant="outlined"
+                size="small"
+                value={filtrosComplementario.codigoFabricante}
+                onChange={(e) => setFiltrosComplementario((prev) => ({ ...prev, codigoFabricante: e.target.value }))}
+                placeholder="Ej: TOY-11111"
+              />
+              <TextField
+                fullWidth
+                label="Proveedor"
+                variant="outlined"
+                size="small"
+                value={filtrosComplementario.proveedor}
+                onChange={(e) => setFiltrosComplementario((prev) => ({ ...prev, proveedor: e.target.value }))}
+                placeholder="Ej: Distribuidora Central"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Código Proveedor"
+                variant="outlined"
+                size="small"
+                value={filtrosComplementario.codigoProveedor}
+                onChange={(e) => setFiltrosComplementario((prev) => ({ ...prev, codigoProveedor: e.target.value }))}
+                placeholder="Ej: DC-111"
+              />
+              <TextField
+                fullWidth
+                label="Ubicación"
+                variant="outlined"
+                size="small"
+                value={filtrosComplementario.ubicacion}
+                onChange={(e) => setFiltrosComplementario((prev) => ({ ...prev, ubicacion: e.target.value }))}
+                placeholder="Ej: C-01"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setFiltrosComplementario({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })}
+              >
+                Limpiar Filtros
+              </Button>
+            </Box>
+          </Paper>
+
+          <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox
                       indeterminate={
-                        selectedComplementarios.length > 0 &&
-                        selectedComplementarios.length < productosDisponibles.length
+                        indicesComplementariosFiltradosAMap.length > 0 &&
+                        indicesComplementariosFiltradosAMap.some((idx) => selectedComplementarios.includes(idx)) &&
+                        !indicesComplementariosFiltradosAMap.every((idx) => selectedComplementarios.includes(idx))
                       }
                       checked={
-                        productosDisponibles.length > 0 &&
-                        selectedComplementarios.length === productosDisponibles.length
+                        indicesComplementariosFiltradosAMap.length > 0 &&
+                        indicesComplementariosFiltradosAMap.every((idx) => selectedComplementarios.includes(idx))
                       }
                       onChange={handleSelectAllComplementarios}
                     />
                   </TableCell>
-                  <TableCell><strong>Fabricante</strong></TableCell>
-                  <TableCell><strong>Código Fabricante</strong></TableCell>
-                  <TableCell><strong>Proveedor</strong></TableCell>
-                  <TableCell><strong>Código Proveedor</strong></TableCell>
-                  <TableCell><strong>Precio Costo</strong></TableCell>
-                  <TableCell><strong>Precio Venta</strong></TableCell>
-                  <TableCell><strong>Stock</strong></TableCell>
-                  <TableCell><strong>Ubicación</strong></TableCell>
+                  <TableCell><Typography fontWeight="bold">Fabricante</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Código Fabricante</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Proveedor</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Código Proveedor</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Precio Costo</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Precio Venta</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Stock</Typography></TableCell>
+                  <TableCell><Typography fontWeight="bold">Ubicación</Typography></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {productosDisponibles.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedComplementarios.includes(index)}
-                        onChange={() => handleToggleComplementario(index)}
-                      />
+                {complementariosFiltrados.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No se encontraron productos complementarios con los filtros aplicados.
+                      </Typography>
                     </TableCell>
-                    <TableCell>{item.fabricante}</TableCell>
-                    <TableCell>{item.codigoFabricante}</TableCell>
-                    <TableCell>{item.proveedor}</TableCell>
-                    <TableCell>{item.codigoProveedor}</TableCell>
-                    <TableCell>${item.precioCosto.toLocaleString()}</TableCell>
-                    <TableCell>${item.precioVenta.toLocaleString()}</TableCell>
-                    <TableCell>{item.stock}</TableCell>
-                    <TableCell>{item.ubicacion}</TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  complementariosFiltrados.map((item, indexFiltrado) => {
+                    const indexOriginal = indicesComplementariosFiltradosAMap[indexFiltrado]
+                    return (
+                      <TableRow key={indexOriginal}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedComplementarios.includes(indexOriginal)}
+                            onChange={() => handleToggleComplementario(indexOriginal)}
+                          />
+                        </TableCell>
+                        <TableCell>{item.fabricante}</TableCell>
+                        <TableCell>{item.codigoFabricante}</TableCell>
+                        <TableCell>{item.proveedor}</TableCell>
+                        <TableCell>{item.codigoProveedor}</TableCell>
+                        <TableCell>${item.precioCosto.toLocaleString()}</TableCell>
+                        <TableCell>${item.precioVenta.toLocaleString()}</TableCell>
+                        <TableCell>{item.stock}</TableCell>
+                        <TableCell>{item.ubicacion}</TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -1651,6 +2036,7 @@ export default function AgregarPage() {
             onClick={() => {
               setOpenComplementariosModal(false)
               setSelectedComplementarios([])
+              setFiltrosComplementario({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
             }}
           >
             Cancelar
@@ -1661,6 +2047,7 @@ export default function AgregarPage() {
               console.log('Productos seleccionados:', selectedComplementarios)
               setOpenComplementariosModal(false)
               setSelectedComplementarios([])
+              setFiltrosComplementario({ fabricante: '', codigoFabricante: '', proveedor: '', codigoProveedor: '', ubicacion: '' })
             }}
             disabled={selectedComplementarios.length === 0}
             sx={{

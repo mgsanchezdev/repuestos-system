@@ -24,6 +24,8 @@ import {
   Add,
   Logout,
   Home,
+  Business,
+  PersonAdd,
 } from '@mui/icons-material'
 
 const drawerWidth = 280
@@ -32,6 +34,8 @@ const menuItems = [
   { text: 'Inicio', icon: <Home />, path: '/dashboard' },
   { text: 'Buscar repuesto', icon: <Search />, path: '/dashboard/buscar' },
   { text: 'Agregar repuesto', icon: <Add />, path: '/dashboard/agregar' },
+  { text: 'Buscar proveedor', icon: <Business />, path: '/dashboard/buscar-proveedor' },
+  { text: 'Agregar proveedor', icon: <PersonAdd />, path: '/dashboard/agregar-proveedor' },
 ]
 
 export default function DashboardLayout({
