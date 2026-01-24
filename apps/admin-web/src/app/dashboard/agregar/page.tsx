@@ -101,6 +101,7 @@ export default function AgregarPage() {
   const [oemFormData, setOemFormData] = useState({
     fabricante: '',
     codigoFabricante: '',
+    fabricanteCodigoOem: 'BOSH',
     proveedor: '',
     codigoProveedor: '',
     precioCosto: '',
@@ -125,6 +126,7 @@ export default function AgregarPage() {
   const [codigosOem, setCodigosOem] = useState<{
     fabricante: string
     codigoFabricante: string
+    fabricanteCodigoOem: string
     proveedor: string
     codigoProveedor: string
     precioCosto: number
@@ -520,6 +522,7 @@ export default function AgregarPage() {
       {
         fabricante: 'Toyota',
         codigoFabricante: 'TOY-12345',
+        fabricanteCodigoOem: 'BOSH',
         proveedor: 'Distribuidora Central',
         codigoProveedor: 'DC-789',
         precioCosto: 15000,
@@ -530,6 +533,7 @@ export default function AgregarPage() {
       {
         fabricante: 'Honda',
         codigoFabricante: 'HON-67890',
+        fabricanteCodigoOem: 'BOSH',
         proveedor: 'Repuestos SA',
         codigoProveedor: 'RS-456',
         precioCosto: 18000,
@@ -782,8 +786,9 @@ export default function AgregarPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell><strong>Fabricante</strong></TableCell>
+                    <TableCell><strong>Marca</strong></TableCell>
                     <TableCell><strong>Código Fabricante (OEM)</strong></TableCell>
+                    <TableCell><strong>Fabricante de código OEM</strong></TableCell>
                     <TableCell><strong>Proveedor</strong></TableCell>
                     <TableCell><strong>Código Proveedor</strong></TableCell>
                     <TableCell><strong>Precio Costo</strong></TableCell>
@@ -798,6 +803,7 @@ export default function AgregarPage() {
                     <TableRow key={index}>
                       <TableCell>{item.fabricante}</TableCell>
                       <TableCell>{item.codigoFabricante}</TableCell>
+                      <TableCell>{item.fabricanteCodigoOem}</TableCell>
                       <TableCell>{item.proveedor}</TableCell>
                       <TableCell>{item.codigoProveedor}</TableCell>
                       <TableCell>${item.precioCosto.toLocaleString()}</TableCell>
@@ -1220,7 +1226,7 @@ export default function AgregarPage() {
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
               <TextField
                 fullWidth
-                label="Fabricante"
+                label="Marca"
                 variant="outlined"
                 value={oemFormData.fabricante}
                 onChange={(e) => setOemFormData((prev) => ({ ...prev, fabricante: e.target.value }))}
@@ -1231,6 +1237,13 @@ export default function AgregarPage() {
                 variant="outlined"
                 value={oemFormData.codigoFabricante}
                 onChange={(e) => setOemFormData((prev) => ({ ...prev, codigoFabricante: e.target.value }))}
+              />
+              <TextField
+                fullWidth
+                label="Fabricante de código OEM"
+                variant="outlined"
+                value={oemFormData.fabricanteCodigoOem}
+                onChange={(e) => setOemFormData((prev) => ({ ...prev, fabricanteCodigoOem: e.target.value }))}
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
@@ -1319,6 +1332,7 @@ export default function AgregarPage() {
               setOemFormData({
                 fabricante: '',
                 codigoFabricante: '',
+                fabricanteCodigoOem: 'BOSH',
                 proveedor: '',
                 codigoProveedor: '',
                 precioCosto: '',
@@ -1340,6 +1354,7 @@ export default function AgregarPage() {
               const nuevoOem = {
                 fabricante: oemFormData.fabricante,
                 codigoFabricante: oemFormData.codigoFabricante,
+                fabricanteCodigoOem: oemFormData.fabricanteCodigoOem || 'BOSH',
                 proveedor: oemFormData.proveedor,
                 codigoProveedor: oemFormData.codigoProveedor,
                 precioCosto: parseFloat(oemFormData.precioCosto) || 0,
@@ -1352,6 +1367,7 @@ export default function AgregarPage() {
               setOemFormData({
                 fabricante: '',
                 codigoFabricante: '',
+                fabricanteCodigoOem: 'BOSH',
                 proveedor: '',
                 codigoProveedor: '',
                 precioCosto: '',
