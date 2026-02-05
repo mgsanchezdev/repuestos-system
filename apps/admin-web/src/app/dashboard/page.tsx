@@ -17,6 +17,13 @@ import {
   TextField,
   IconButton,
   MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material'
 import {
   Search,
@@ -25,6 +32,7 @@ import {
   Search as SearchIcon,
   PersonAdd,
   Close as CloseIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 
@@ -68,13 +76,51 @@ const cards = [
     color: '#f59e0b',
     path: '',
     isModal: true,
+    modalType: 'alta',
+  },
+  {
+    title: 'Consultar clientes',
+    description: 'Busca y consulta clientes registrados',
+    icon: <PersonIcon sx={{ fontSize: 60 }} />,
+    color: '#8b5cf6',
+    path: '',
+    isModal: true,
+    modalType: 'buscar',
   },
 ]
+
+interface Cliente {
+  id: string
+  nombre: string
+  apellido: string
+  direccion: string
+  telefono: string
+  cuit: string
+  domicilio: string
+  provincia: string
+  ciudad: string
+  tipoIVA: string
+  fechaCreacion?: string
+}
 
 export default function DashboardPage() {
   const router = useRouter()
   const theme = useTheme()
   const [openClienteModal, setOpenClienteModal] = useState(false)
+  const [openBuscarClienteModal, setOpenBuscarClienteModal] = useState(false)
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [clientesFiltrados, setClientesFiltrados] = useState<Cliente[]>([])
+  const [filtrosBusqueda, setFiltrosBusqueda] = useState({
+    nombre: '',
+    apellido: '',
+    direccion: '',
+    telefono: '',
+    cuit: '',
+    domicilio: '',
+    provincia: '',
+    ciudad: '',
+    tipoIVA: '',
+  })
   const [clienteFormData, setClienteFormData] = useState({
     nombre: '',
     apellido: '',
@@ -92,14 +138,76 @@ export default function DashboardPage() {
     if (!isAuthenticated) {
       router.push('/')
     }
+    cargarClientes()
   }, [router])
+
+  useEffect(() => {
+    filtrarClientes()
+  }, [filtrosBusqueda, clientes])
+
+  const cargarClientes = () => {
+    const clientesGuardados = localStorage.getItem('clientes')
+    let todosLosClientes: Cliente[] = []
+    
+    if (clientesGuardados) {
+      try {
+        todosLosClientes = JSON.parse(clientesGuardados)
+      } catch {
+        todosLosClientes = []
+      }
+    }
+    
+    setClientes(todosLosClientes)
+  }
+
+  const filtrarClientes = () => {
+    const filtros = Object.entries(filtrosBusqueda).filter(([_, value]) => value.trim() !== '')
+    
+    if (filtros.length === 0) {
+      setClientesFiltrados(clientes)
+      return
+    }
+
+    const filtrados = clientes.filter((cliente) => {
+      return filtros.every(([key, value]) => {
+        const clienteValue = cliente[key as keyof Cliente]?.toString().toLowerCase() || ''
+        return clienteValue.includes(value.toLowerCase())
+      })
+    })
+    
+    setClientesFiltrados(filtrados)
+  }
 
   const handleCardClick = (card: typeof cards[0]) => {
     if (card.isModal) {
-      setOpenClienteModal(true)
+      if ((card as any).modalType === 'buscar') {
+        setOpenBuscarClienteModal(true)
+        cargarClientes()
+      } else {
+        setOpenClienteModal(true)
+      }
     } else {
       router.push(card.path)
     }
+  }
+
+  const handleFiltroChange = (field: keyof typeof filtrosBusqueda, value: string) => {
+    setFiltrosBusqueda((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleCloseBuscarModal = () => {
+    setOpenBuscarClienteModal(false)
+    setFiltrosBusqueda({
+      nombre: '',
+      apellido: '',
+      direccion: '',
+      telefono: '',
+      cuit: '',
+      domicilio: '',
+      provincia: '',
+      ciudad: '',
+      tipoIVA: '',
+    })
   }
 
   const handleInputChange = (field: keyof typeof clienteFormData, value: string) => {
@@ -155,6 +263,7 @@ export default function DashboardPage() {
 
     alert('Cliente registrado exitosamente')
     handleCloseClienteModal()
+    cargarClientes()
   }
 
   const tiposIVA = [
@@ -433,6 +542,202 @@ export default function DashboardPage() {
             }}
           >
             Guardar Cliente
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Consultar Clientes */}
+      <Dialog
+        open={openBuscarClienteModal}
+        onClose={handleCloseBuscarModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Consultar Clientes
+          <IconButton
+            onClick={handleCloseBuscarModal}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            {/* Filtros de búsqueda */}
+            <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <SearchIcon sx={{ fontSize: 20, color: '#8b5cf6', mr: 1 }} />
+                <Typography variant="subtitle1" fontWeight={600}>
+                  Filtros de Búsqueda
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                  <TextField
+                    fullWidth
+                    label="Nombre"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.nombre}
+                    onChange={(e) => handleFiltroChange('nombre', e.target.value)}
+                    placeholder="Buscar por nombre"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Apellido"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.apellido}
+                    onChange={(e) => handleFiltroChange('apellido', e.target.value)}
+                    placeholder="Buscar por apellido"
+                  />
+                  <TextField
+                    fullWidth
+                    label="CUIT"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.cuit}
+                    onChange={(e) => handleFiltroChange('cuit', e.target.value)}
+                    placeholder="Buscar por CUIT"
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                  <TextField
+                    fullWidth
+                    label="Teléfono"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.telefono}
+                    onChange={(e) => handleFiltroChange('telefono', e.target.value)}
+                    placeholder="Buscar por teléfono"
+                  />
+                  <TextField
+                    fullWidth
+                    select
+                    label="Provincia"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.provincia}
+                    onChange={(e) => handleFiltroChange('provincia', e.target.value)}
+                  >
+                    <MenuItem value="">Todas</MenuItem>
+                    {provincias.map((provincia) => (
+                      <MenuItem key={provincia} value={provincia}>
+                        {provincia}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    fullWidth
+                    label="Ciudad"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.ciudad}
+                    onChange={(e) => handleFiltroChange('ciudad', e.target.value)}
+                    placeholder="Buscar por ciudad"
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                  <TextField
+                    fullWidth
+                    label="Dirección"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.direccion}
+                    onChange={(e) => handleFiltroChange('direccion', e.target.value)}
+                    placeholder="Buscar por dirección"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Domicilio"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.domicilio}
+                    onChange={(e) => handleFiltroChange('domicilio', e.target.value)}
+                    placeholder="Buscar por domicilio"
+                  />
+                  <TextField
+                    fullWidth
+                    select
+                    label="Tipo de IVA"
+                    variant="outlined"
+                    size="small"
+                    value={filtrosBusqueda.tipoIVA}
+                    onChange={(e) => handleFiltroChange('tipoIVA', e.target.value)}
+                  >
+                    <MenuItem value="">Todos</MenuItem>
+                    {tiposIVA.map((tipo) => (
+                      <MenuItem key={tipo} value={tipo}>
+                        {tipo}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+              </Box>
+              {Object.values(filtrosBusqueda).some((f) => f.trim() !== '') && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                  {clientesFiltrados.length} cliente(s) encontrado(s)
+                </Typography>
+              )}
+            </Paper>
+
+            {/* Tabla de resultados */}
+            {clientes.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <PersonIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  No hay clientes registrados
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Agrega un cliente desde el dashboard principal
+                </Typography>
+              </Paper>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Nombre</strong></TableCell>
+                      <TableCell><strong>Apellido</strong></TableCell>
+                      <TableCell><strong>CUIT</strong></TableCell>
+                      <TableCell><strong>Teléfono</strong></TableCell>
+                      <TableCell><strong>Provincia</strong></TableCell>
+                      <TableCell><strong>Ciudad</strong></TableCell>
+                      <TableCell><strong>Tipo IVA</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {clientesFiltrados.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">
+                          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                            No se encontraron clientes con los filtros aplicados
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      clientesFiltrados.map((cliente) => (
+                        <TableRow key={cliente.id} hover>
+                          <TableCell>{cliente.nombre}</TableCell>
+                          <TableCell>{cliente.apellido}</TableCell>
+                          <TableCell>{cliente.cuit || '-'}</TableCell>
+                          <TableCell>{cliente.telefono || '-'}</TableCell>
+                          <TableCell>{cliente.provincia || '-'}</TableCell>
+                          <TableCell>{cliente.ciudad || '-'}</TableCell>
+                          <TableCell>{cliente.tipoIVA || '-'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={handleCloseBuscarModal} variant="outlined">
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
