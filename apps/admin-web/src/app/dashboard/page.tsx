@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -10,12 +10,21 @@ import {
   Typography,
   Button,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  MenuItem,
 } from '@mui/material'
 import {
   Search,
   Add,
   Business,
   Search as SearchIcon,
+  PersonAdd,
+  Close as CloseIcon,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 
@@ -52,11 +61,31 @@ const cards = [
     path: '/dashboard/agregar-proveedor',
     isModal: false,
   },
+  {
+    title: 'Alta de cliente',
+    description: 'Registra nuevos clientes en el sistema',
+    icon: <PersonAdd sx={{ fontSize: 60 }} />,
+    color: '#f59e0b',
+    path: '',
+    isModal: true,
+  },
 ]
 
 export default function DashboardPage() {
   const router = useRouter()
   const theme = useTheme()
+  const [openClienteModal, setOpenClienteModal] = useState(false)
+  const [clienteFormData, setClienteFormData] = useState({
+    nombre: '',
+    apellido: '',
+    direccion: '',
+    telefono: '',
+    cuit: '',
+    domicilio: '',
+    provincia: '',
+    ciudad: '',
+    tipoIVA: '',
+  })
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -66,8 +95,101 @@ export default function DashboardPage() {
   }, [router])
 
   const handleCardClick = (card: typeof cards[0]) => {
-    router.push(card.path)
+    if (card.isModal) {
+      setOpenClienteModal(true)
+    } else {
+      router.push(card.path)
+    }
   }
+
+  const handleInputChange = (field: keyof typeof clienteFormData, value: string) => {
+    setClienteFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleCloseClienteModal = () => {
+    setOpenClienteModal(false)
+    setClienteFormData({
+      nombre: '',
+      apellido: '',
+      direccion: '',
+      telefono: '',
+      cuit: '',
+      domicilio: '',
+      provincia: '',
+      ciudad: '',
+      tipoIVA: '',
+    })
+  }
+
+  const handleSaveCliente = () => {
+    // Validar campos requeridos
+    if (!clienteFormData.nombre.trim() || !clienteFormData.apellido.trim()) {
+      alert('Por favor complete los campos requeridos (Nombre y Apellido)')
+      return
+    }
+
+    // Obtener clientes existentes de localStorage
+    const clientesExistentes = localStorage.getItem('clientes')
+    let todosLosClientes: any[] = []
+    
+    if (clientesExistentes) {
+      try {
+        todosLosClientes = JSON.parse(clientesExistentes)
+      } catch {
+        todosLosClientes = []
+      }
+    }
+
+    // Crear nuevo cliente
+    const nuevoCliente = {
+      id: Date.now().toString(),
+      ...clienteFormData,
+      fechaCreacion: new Date().toISOString(),
+    }
+
+    // Agregar el nuevo cliente
+    todosLosClientes.push(nuevoCliente)
+
+    // Guardar en localStorage
+    localStorage.setItem('clientes', JSON.stringify(todosLosClientes))
+
+    alert('Cliente registrado exitosamente')
+    handleCloseClienteModal()
+  }
+
+  const tiposIVA = [
+    'Responsable Inscripto',
+    'Monotributista',
+    'Exento',
+    'Consumidor Final',
+    'No Responsable',
+  ]
+
+  const provincias = [
+    'Buenos Aires',
+    'Catamarca',
+    'Chaco',
+    'Chubut',
+    'Córdoba',
+    'Corrientes',
+    'Entre Ríos',
+    'Formosa',
+    'Jujuy',
+    'La Pampa',
+    'La Rioja',
+    'Mendoza',
+    'Misiones',
+    'Neuquén',
+    'Río Negro',
+    'Salta',
+    'San Juan',
+    'San Luis',
+    'Santa Cruz',
+    'Santa Fe',
+    'Santiago del Estero',
+    'Tierra del Fuego',
+    'Tucumán',
+  ]
 
   return (
     <Box
@@ -189,6 +311,131 @@ export default function DashboardPage() {
             </motion.div>
         ))}
       </Box>
+
+      {/* Modal Alta de Cliente */}
+      <Dialog
+        open={openClienteModal}
+        onClose={handleCloseClienteModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Alta de Cliente
+          <IconButton
+            onClick={handleCloseClienteModal}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                <TextField
+                  fullWidth
+                  label="Nombre"
+                  variant="outlined"
+                  value={clienteFormData.nombre}
+                  onChange={(e) => handleInputChange('nombre', e.target.value)}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="Apellido"
+                  variant="outlined"
+                  value={clienteFormData.apellido}
+                  onChange={(e) => handleInputChange('apellido', e.target.value)}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="Dirección"
+                  variant="outlined"
+                  value={clienteFormData.direccion}
+                  onChange={(e) => handleInputChange('direccion', e.target.value)}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                <TextField
+                  fullWidth
+                  label="Domicilio"
+                  variant="outlined"
+                  value={clienteFormData.domicilio}
+                  onChange={(e) => handleInputChange('domicilio', e.target.value)}
+                />
+                <TextField
+                  fullWidth
+                  label="Teléfono"
+                  variant="outlined"
+                  value={clienteFormData.telefono}
+                  onChange={(e) => handleInputChange('telefono', e.target.value)}
+                  type="tel"
+                />
+                <TextField
+                  fullWidth
+                  label="CUIT"
+                  variant="outlined"
+                  value={clienteFormData.cuit}
+                  onChange={(e) => handleInputChange('cuit', e.target.value)}
+                  placeholder="XX-XXXXXXXX-X"
+                />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Provincia"
+                  variant="outlined"
+                  value={clienteFormData.provincia}
+                  onChange={(e) => handleInputChange('provincia', e.target.value)}
+                >
+                  {provincias.map((provincia) => (
+                    <MenuItem key={provincia} value={provincia}>
+                      {provincia}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="Ciudad"
+                  variant="outlined"
+                  value={clienteFormData.ciudad}
+                  onChange={(e) => handleInputChange('ciudad', e.target.value)}
+                />
+                <TextField
+                  fullWidth
+                  select
+                  label="Tipo de IVA"
+                  variant="outlined"
+                  value={clienteFormData.tipoIVA}
+                  onChange={(e) => handleInputChange('tipoIVA', e.target.value)}
+                >
+                  {tiposIVA.map((tipo) => (
+                    <MenuItem key={tipo} value={tipo}>
+                      {tipo}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={handleCloseClienteModal} variant="outlined">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSaveCliente}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #f59e0b 0%, #f59e0bdd 100%)',
+            }}
+          >
+            Guardar Cliente
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
